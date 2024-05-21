@@ -37,9 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'datacopilot',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -69,14 +72,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'djangoback.wsgi.application'
 
+CORS_ORIGIN_WHITELIST = (
+    'https://127.0.0.1:8080',
+    'https://localhost:8080',
+    'https://127.0.0.1:8000',
+    'https://localhost:8000'
+)
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    'ENGINE': 'django.db.backends.mysql',# 默认
+    'NAME': 'datacopilot', # 连接的数据库  #一定要存在的数据库名
+    'HOST': '127.0.0.1', # mysql的ip地址
+    'PORT': 3306, # mysql的端口
+    'USER': 'root', # mysql的用户名
+    'PASSWORD': '19981111' # mysql的密码
     }
 }
 
