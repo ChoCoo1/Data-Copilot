@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class DatacopilotConfig(AppConfig):
+class CopilotConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'datacopilot'
+    name = 'copilot'

@@ -1,0 +1,210 @@
+<template>
+<!--  布局 -->
+  <div style="overflow: auto">
+    <el-container>
+      <el-header>
+        <el-menu
+          :default-active="activeIndex"
+          mode="horizontal"
+          :ellipsis="false"
+        >
+          <img style="height: 100%" src="@/assets/DataCopilot.svg" alt="DataCopilot" />
+          <el-menu-item index="0" @click="goToHome"><el-icon :size="20" color="#000000"><House /></el-icon>主页</el-menu-item>
+          <el-menu-item index="1" @click="goToDatabase"><el-icon :size="20" color="#000000"><Coin /></el-icon>数据库</el-menu-item>
+          <el-menu-item index="2" @click="goToQuery"><el-icon :size="20" color="#000000"><Search /></el-icon>查询</el-menu-item>
+          <div class="flex-grow" />
+          <el-menu-item index="3" @click="goToLogin"><el-icon :size="20" color="#000000"><UserFilled /></el-icon>登陆</el-menu-item>
+          <el-menu-item index="4" @click="goToRegister"><el-icon :size="20" color="#000000"><User /></el-icon>注册</el-menu-item>
+        </el-menu>
+      </el-header>
+
+<!--      页面主要部分  -->
+      <el-main>
+        <el-backtop :right="100" :bottom="100" style="color: black"/>
+
+<!--        搜索框-->
+        <div class="search-container">
+          <el-input
+              v-model="searchQuery"
+              class="search-input"
+              placeholder="请输入您想搜索的内容"
+            >
+            <template #prepend>
+              <el-icon :size="20" color="#000000"><Search /></el-icon>
+            </template>
+            <template #suffix>
+                <el-button class="roundBtn" @click="searchSql"><el-icon :size="20" color="#FFFFFF" ><Bottom/></el-icon></el-button>
+            </template>
+          </el-input>
+        </div>
+
+        <!-- 显示SQL结果 -->
+          <el-card v-if="displaySql" style="height: auto" v-loading="waitSql">
+            <el-text style="margin: 0 auto;font-size: 1.8rem;color: black"><b>以下是生成结果</b></el-text>
+            <el-divider style="width: 550px"></el-divider>
+            <!-- 回复框  -->
+            <el-card class="chatBox">
+              <div style="display: flex; justify-content: space-between; width: 500px; margin: 0 auto; padding: 0;">
+                <el-text style="text-align: left; width: 300px;color: black"><b>SQL语句</b></el-text>
+                <el-button type="text" style="color: black;" @click="copySql">
+                  <el-icon :size="18"><CopyDocument /></el-icon> 复制结果
+                </el-button>
+              </div>
+              <el-divider style="width: 100%;margin: 10px auto"></el-divider>
+              <el-text style="margin: 10px auto;font-size: 1.2rem;color: black">{{this.sqlResult}}</el-text>
+            </el-card>
+<!--       数据展示SQL查询结果 -->
+            <el-text style="margin:30px auto;padding: 20px;font-size: 1.4rem;color: black"><b>以下是SQL语句执行结果</b></el-text>
+            <el-divider style="width: 550px"></el-divider>
+            <el-table :data="tableData" height="100" style="width: 100%;max-height: 1000px;margin:20px auto;">
+              <el-table-column prop="date" label="Date" width="100" />
+              <el-table-column prop="name" label="Name" width="100" />
+              <el-table-column prop="address" label="Address" />
+            </el-table>
+            <el-button @click="showChart"> 可视化该图表</el-button>
+          </el-card>
+
+            <!-- 可视化图表  -->
+            <el-card v-if="displayChart" style="max-height: 1000px" v-loading="waitChart">
+              <el-text style="margin: 0;font-size: 1.8rem;color: black"><b>可视化结果</b></el-text>
+              <el-divider style="width: 550px"></el-divider>
+              <img src="@/assets/img.png" alt="可视化图表" style="width:500px;margin:0;" >
+              <div style="margin: 10px auto;">
+                <el-text style="margin: 0;font-size: 1rem;color: black">{{chartDescription}}</el-text>
+              </div>
+              <el-button @click="saveChart"> 保存图表</el-button>
+          </el-card>
+      </el-main>
+    </el-container>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      activeIndex: '2', // 默认激活的菜单项
+      searchQuery: '',
+      displaySql: true,
+      displayChart: true,
+      waitSql: false,
+      waitChart: false,
+      sqlResult: 'select * from table',
+      chartDescription: '这是图表描述',
+      tableData : [
+        {
+          date: '2016-05-03',
+          name: 'Tom',
+          address: 'No. 189, Grove St, Los Angeles',
+        },
+      ]
+    }
+  },
+  methods: {
+    goToHome() {
+      this.$router.push('/');
+    },
+    goToLogin() {
+      this.$router.push('/login');
+    },
+    goToRegister() {
+      this.$router.push('/register');
+    },
+    goToDatabase() {
+      this.$router.push('/database');
+    },
+    goToQuery() {
+      this.$router.push('/query');
+    },
+    searchSql() {
+      this.displaySql = !this.displaySql;
+    },
+    showChart() {
+      this.displayChart = !this.displayChart;
+      this.$message.success('已经成功展示图表');
+    },
+    copySql() {
+        this.$message.success('复制成功');
+    },
+    saveChart() {
+      this.$message.success('保存成功');
+    },
+  }
+}
+</script>
+
+<style scoped>
+.flex-grow {
+  flex-grow: 1;
+}
+.el-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* 使用视口高度作为容器的最小高度 */
+}
+
+.el-header {
+  flex: 0 1 auto; /* 不占据多余空间，只占据自身所需空间 */
+}
+.el-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* main元素占据剩余空间 */
+  overflow: auto; /* 如果内容超出，显示滚动条 */
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
+  background: linear-gradient(-40deg,#FFDF58, #CD6CE7, #F7D7A7);
+  background-size: 1000% 1000%;
+  animation: gradientBG 5s ease infinite;
+}
+
+.el-card {
+  display: flex; /* 添加Flexbox布局 */
+  flex-direction: column; /* 使子元素垂直排列 */
+  align-items: center; /* 水平居中子元素 */
+  text-align: center;
+  width: 700px;
+  margin:50px auto 50px auto;
+  border-radius: 10px;
+  padding: 10px;
+}
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+  }
+.search-container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin:50px auto 50px auto;
+}
+.search-input {
+  width: 550px; /* 根据需要调整宽度 */
+  height: 50px;
+}
+.roundBtn{
+width: 30px;
+height: 30px;
+border-radius:50%;
+background-color:#000000;
+border:0;
+}
+.chatBox {
+  width: 550px;
+  max-height: 400px; /* 限制聊天框的最大高度 */
+  overflow: auto;
+  margin: 20px auto;
+  padding: 0;
+  background-color: #f9f9f9;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+}
+</style>
