@@ -45,9 +45,14 @@
 </template>
 
 <script>
+import axios from "axios";
+import {ElMessage} from "element-plus";
+
 export default {
   data() {
     return {
+      inputUserName: '',
+      inputPwd: '',
       activeIndex: '3' // 默认激活的菜单项
     }
   },
@@ -67,6 +72,25 @@ export default {
     goToQuery() {
       this.$router.push('/query');
     },
+    loginIn() {
+      const requestData = {
+        username: this.inputUserName,
+        password: this.inputPwd
+      };
+
+      axios.post('http://127.0.0.1:8000/api/login/', requestData)
+        .then(response => {
+          ElMessage.success('登陆成功');
+          this.$router.push({ path: '/', query: { username: this.inputUserName } });
+          // 处理登录成功的逻辑，比如跳转到主页或显示用户信息
+        })
+        .catch(error => {
+          ElMessage.error('登录失败，请重新输入');
+          // 处理登录失败的逻辑，比如显示错误提示
+          this.inputUserName = '';
+          this.inputPwd = '';
+        });
+    }
   }
 }
 </script>

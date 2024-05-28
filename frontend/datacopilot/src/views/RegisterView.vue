@@ -46,7 +46,6 @@
                 <el-form-item label="手机号" style="margin: 40px 0 40px 0">
                   <el-input
                     v-model="inputPhone"
-                    type="password"
                     placeholder="请输入手机号"
                   />
                 </el-form-item>
@@ -60,6 +59,8 @@
 </template>
 
 <script>
+import { ElMessage } from 'element-plus'
+import axios from 'axios'
 export default {
   data() {
     return {
@@ -86,6 +87,40 @@ export default {
     goToQuery() {
       this.$router.push('/query');
     },
+    register() {
+      // 验证输入是否为空
+      if (!this.inputUserName || !this.inputPwd || !this.inputPwdAgain || !this.inputPhone) {
+        ElMessage.error('所有字段都是必填项，请填写完整');
+        return;
+      }
+
+      // 验证两次输入的密码是否一致
+      if (this.inputPwd !== this.inputPwdAgain) {
+        ElMessage.error('两次输入的密码不一致');
+        return;
+      }
+
+      // 构造注册请求的数据对象
+      const requestData = {
+        username: this.inputUserName,
+        password: this.inputPwd,
+        phone: this.inputPhone
+      };
+
+      // 发送注册请求
+      axios.post('http://127.0.0.1:8000/api/register/', requestData)
+        .then(response => {
+          // 处理注册成功的响应
+          ElMessage.success('注册成功');
+          this.goToLogin()
+          // 可以在这里做一些跳转或提示等操作
+        })
+        .catch(error => {
+          // 处理注册失败的响应
+          ElMessage.error('注册失败: ' + error.response.data);
+          // 可以在这里做一些错误提示等操作
+        });
+    }
   }
 }
 </script>

@@ -13,8 +13,9 @@
           <el-menu-item index="1" @click="goToDatabase" ref="ref3"><el-icon :size="20" color="#000000"><Coin /></el-icon>数据库</el-menu-item>
           <el-menu-item index="2" @click="goToQuery" ref="ref4"><el-icon :size="20" color="#000000"><Search /></el-icon>查询</el-menu-item>
           <div class="flex-grow" />
-          <el-menu-item index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
-          <el-menu-item index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
+          <el-menu-item v-if="!username" index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
+          <el-menu-item v-if="!username" index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
+          <el-menu-item v-if="username" index="5" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>{{username}}</el-menu-item>
         </el-menu>
       </el-header>
 
@@ -46,7 +47,7 @@
           </el-button>
         </div>
       </el-main>
-      <el-tour v-model="open">
+      <el-tour v-model="open" >
         <el-tour-step :target="ref1?.$el" title="1、创建一个账号" description="在这里，您可以创建一个新的账号，开始您的DataCopilot之旅。填写必要的信息并设置一个安全的密码。"/>
         <el-tour-step :target="ref2?.$el" title="2、登陆账号" description="使用您刚创建的账号信息登录DataCopilot平台。如果您已经拥有账号，请直接输入您的用户名和密码进行登录。"/>
         <el-tour-step :target="ref3?.$el" title="3、添加数据库" description="登录后，您需要添加可以访问的数据库。选择您的数据库类型，输入连接信息，并确保您有权限访问所选数据库。"/>
@@ -63,7 +64,11 @@ export default {
     return {
       activeIndex: '0', // 默认激活的菜单项
       open:false,
+      username: this.$route.query.username || '',
     }
+  },
+  created() {
+    this.username = this.$route.query.username;
   },
   setup() {
     // 使用ref创建响应式引用
