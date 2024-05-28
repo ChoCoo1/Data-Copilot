@@ -42,7 +42,7 @@
                 <el-input v-model="SqlLoginName" placeholder="请输入数据库用户名" />
               </el-form-item>
               <el-form-item label="密码">
-                <el-input v-model="SqlPwd" placeholder="请输入数据密码" />
+                <el-input v-model="SqlPwd" placeholder="请输入数据密码" show-password type="password"/>
               </el-form-item>
               <el-form-item label="数据库名称">
                 <el-input v-model="SqlName" placeholder="请输入数据库名称" />
@@ -50,22 +50,24 @@
           </el-form>
           </div>
           <div style="text-align: center">
-            <el-button type="primary" @click="testConnect">验证连接</el-button>
-            <el-button type="primary" @click="goToDatabase" :disabled="passConnect">导入</el-button>
+            <el-button type="primary" @click="testDatabase">验证连接</el-button>
+            <el-button type="primary" @click="saveDatabase" :disabled="!passConnect">导入</el-button>
           </div>
         </el-card>
 
-        <el-card v-if="haveSql">
+        <el-card v-if="connections">
           <div class="form-container">
             <div style="margin: 0 0 20px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>已导入的数据库</b></el-text></div>
             <div style="margin: 0 0 20px 0;padding: 0"><el-divider></el-divider></div>
-            <el-collapse v-model="activeNames" style="width: 550px">
-              <el-collapse-item :title=SqlName name="1">
-                <div class="intro">数据库类型：{{SqlType}}</div>
-                <div class="intro">数据库地址：{{SqlAddress}}</div>
-                <div class="intro">数据库端口：{{SqlPort}}</div>
-                <div class="intro">用户名：{{SqlAddress}}</div>
-                <el-popconfirm title="你确定要删除数据库吗">
+            <el-collapse v-model="activeNames" style="width: 550px" accordion>
+              <el-collapse-item  v-for="connection in connections" :key="connection.id" :name="connection.id">
+                <template #title>
+                  <b style="font-size: 1.2rem">{{connection.sql_name}}</b>
+                </template>
+                <div class="intro">数据库类型：{{ connection.sql_type }}</div>
+                <div class="intro">数据库地址：{{ connection.sql_address }}</div>
+                <div class="intro">数据库端口：{{ connection.sql_port }}</div>
+                <el-popconfirm title="你确定要删除数据库吗" @confirm="handleDelete(connection.id)">
                   <template #reference>
                   <el-button class="intro" type="danger"><el-icon><CloseBold /></el-icon>删除数据库</el-button>
                   </template>
@@ -80,24 +82,28 @@
 </template>
 
 <script>
+import axios from "axios";
+import {ElMessage} from "element-plus";
+
 export default {
   data() {
     return {
       activeIndex: '1', // 默认激活的菜单项
       SqlType: '',
       SqlName: '',
-      SqlPort: '',
-      SqlAddress: '',
+      SqlPort: 3306,
+      SqlAddress: '127.0.0.1',
       SqlLoginName: '',
       SqlPwd: '',
-      passConnect:'',
-      activeNames: '0',
-      haveSql: false,
+      passConnect: false,
       username: this.$route.query.username || '',
+      connections: [],
+      activeNames: '0'
     }
   },
   created() {
     this.username = this.$route.query.username;
+    this.fetchDatabaseConnections();
   },
   methods: {
     goToHome() {
@@ -117,6 +123,76 @@ export default {
     },
     logout() {
       this.username='';
+    },
+    testDatabase() {
+      const requestData = {
+        username: this.username,
+        sqlType: this.SqlType,
+        sqlName: this.SqlName,
+        sqlPort: this.SqlPort,
+        sqlAddress: this.SqlAddress,
+        sqlLoginName: this.SqlLoginName,
+        sqlPwd: this.SqlPwd
+      };
+      console.log(requestData);
+      axios.post('http://127.0.0.1:8000/api/test_database_connection/', requestData)
+        .then(response => {
+          ElMessage.success('连接成功');
+          // 测试连接成功，保存数据库信息
+          this.passConnect=true;
+        })
+        .catch(error => {
+          ElMessage.error('连接失败');
+          this.passConnect=false;
+          // 测试连接失败，提示用户连接失败
+        });
+    },
+    saveDatabase() {
+      const requestData = {
+        username: this.username,
+        sqlType: this.SqlType,
+        sqlName: this.SqlName,
+        sqlPort: this.SqlPort,
+        sqlAddress: this.SqlAddress,
+        sqlLoginName: this.SqlLoginName,
+        sqlPwd: this.SqlPwd
+      };
+
+      axios.post('http://127.0.0.1:8000/api/save_database_connection/', requestData)
+        .then(response => {
+          ElMessage.success('导入成功');
+          this.fetchDatabaseConnections();
+          // 处理保存成功的逻辑，例如提示用户保存成功
+        })
+        .catch(error => {
+          ElMessage.error('导入失败'); // 显示默认错误信息
+          // 处理保存失败的逻辑，例如提示用户保存失败
+        });
+    },
+    fetchDatabaseConnections() {
+      const RequestData = {
+          params: {
+            username: this.username
+          }
+        };
+      axios.get('http://127.0.0.1:8000/api/get_database_connections/',RequestData)
+        .then(response => {
+          this.connections = response.data;
+        })
+        .catch(error => {
+          console.error("There was an error fetching the database connections!", error);
+        });
+    },
+    handleDelete(id) {
+      axios.delete(`http://127.0.0.1:8000/api/delete_database_connection/`,{data:{sql_id:id}})
+        .then(response => {
+          ElMessage.success("删除成功");
+          this.fetchDatabaseConnections();
+          // 在这里你可能想要更新前端的数据库连接列表
+        })
+        .catch(error => {
+          ElMessage.error("删除失败")
+        });
     },
   }
 }

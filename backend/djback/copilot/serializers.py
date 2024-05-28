@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import *
 from django.contrib.auth import authenticate
 
 
@@ -28,11 +28,24 @@ class LoginSerializer(serializers.Serializer):
         if username and password:
             user = authenticate(username=username, password=password)
             if user is None:
-                raise serializers.ValidationError("Invalid username or password")
+                raise serializers.ValidationError("不可用的用户名和密码")
             if not user.is_active:
-                raise serializers.ValidationError("User account is disabled")
+                raise serializers.ValidationError("用户名已存在")
         else:
-            raise serializers.ValidationError("Must include 'username' and 'password'")
+            raise serializers.ValidationError("必须有用户名和密码")
 
         data['user'] = user
         return data
+
+
+class DatabaseConnectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DatabaseConnection
+        fields = ['username', 'sql_type', 'sql_address', 'sql_port', 'sql_login_name', 'sql_pwd', 'sql_name',
+                  'created_at']
+
+
+class PartialDatabaseConnectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DatabaseConnection
+        fields = ['sql_name', 'sql_type', 'sql_address', 'sql_port','id']
