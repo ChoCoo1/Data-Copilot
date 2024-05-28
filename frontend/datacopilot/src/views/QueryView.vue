@@ -13,8 +13,10 @@
           <el-menu-item index="1" @click="goToDatabase"><el-icon :size="20" color="#000000"><Coin /></el-icon>数据库</el-menu-item>
           <el-menu-item index="2" @click="goToQuery"><el-icon :size="20" color="#000000"><Search /></el-icon>查询</el-menu-item>
           <div class="flex-grow" />
-          <el-menu-item index="3" @click="goToLogin"><el-icon :size="20" color="#000000"><UserFilled /></el-icon>登陆</el-menu-item>
-          <el-menu-item index="4" @click="goToRegister"><el-icon :size="20" color="#000000"><User /></el-icon>注册</el-menu-item>
+          <el-menu-item v-if="!username" index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
+          <el-menu-item v-if="!username" index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
+          <el-menu-item v-if="username" index="5" ><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
+          <el-menu-item v-if="username" index="6" @click="logout" ref="ref6"><el-icon :size="20" color="#000000" ><SwitchButton /></el-icon>退出</el-menu-item>
         </el-menu>
       </el-header>
 
@@ -85,12 +87,13 @@ export default {
     return {
       activeIndex: '2', // 默认激活的菜单项
       searchQuery: '',
-      displaySql: true,
-      displayChart: true,
+      displaySql: false,
+      displayChart: false,
       waitSql: false,
       waitChart: false,
       sqlResult: 'select * from table',
       chartDescription: '这是图表描述',
+      username: this.$route.query.username || '',
       tableData : [
         {
           date: '2016-05-03',
@@ -102,7 +105,7 @@ export default {
   },
   methods: {
     goToHome() {
-      this.$router.push('/');
+      this.$router.push({ path: '/', query: { username: this.username } });
     },
     goToLogin() {
       this.$router.push('/login');
@@ -111,10 +114,10 @@ export default {
       this.$router.push('/register');
     },
     goToDatabase() {
-      this.$router.push('/database');
+      this.$router.push({ path: '/database', query: { username: this.username } });
     },
     goToQuery() {
-      this.$router.push('/query');
+      this.$router.push({ path: '/query', query: { username: this.username } });
     },
     searchSql() {
       this.displaySql = !this.displaySql;

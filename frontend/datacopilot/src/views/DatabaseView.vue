@@ -13,8 +13,10 @@
           <el-menu-item index="1" @click="goToDatabase"><el-icon :size="20" color="#000000"><Coin/></el-icon>数据库</el-menu-item>
           <el-menu-item index="2" @click="goToQuery"><el-icon :size="20" color="#000000"><Search/></el-icon>查询</el-menu-item>
           <div class="flex-grow" />
-          <el-menu-item index="3" @click="goToLogin"><el-icon :size="20" color="#000000"><UserFilled/></el-icon>登陆</el-menu-item>
-          <el-menu-item index="4" @click="goToRegister"><el-icon :size="20" color="#000000"><User/></el-icon>注册</el-menu-item>
+          <el-menu-item v-if="!username" index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
+          <el-menu-item v-if="!username" index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
+          <el-menu-item v-if="username" index="5" ><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
+          <el-menu-item v-if="username" index="6" @click="logout" ref="ref6"><el-icon :size="20" color="#000000" ><SwitchButton /></el-icon>退出</el-menu-item>
         </el-menu>
       </el-header>
 
@@ -23,7 +25,7 @@
         <el-card>
           <div class="form-container">
             <div style="margin: 0 0 20px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>导入数据库</b></el-text></div>
-            <div style="margin: 0 0 20px 0;padding: 0"><el-divider></el-divider></div>
+            <el-divider style="width: 550px;margin: 0 0 20px 0;"></el-divider>
           <el-form label-width="auto">
               <el-form-item label="数据库类型">
                 <el-select v-model="SqlType"  placeholder="请选择数据库类型">
@@ -48,11 +50,12 @@
           </el-form>
           </div>
           <div style="text-align: center">
-            <el-button type="primary" @click="goToDatabase">验证连接</el-button>
+            <el-button type="primary" @click="testConnect">验证连接</el-button>
             <el-button type="primary" @click="goToDatabase" :disabled="passConnect">导入</el-button>
           </div>
         </el-card>
-        <el-card>
+
+        <el-card v-if="haveSql">
           <div class="form-container">
             <div style="margin: 0 0 20px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>已导入的数据库</b></el-text></div>
             <div style="margin: 0 0 20px 0;padding: 0"><el-divider></el-divider></div>
@@ -89,14 +92,16 @@ export default {
       SqlPwd: '',
       passConnect:'',
       activeNames: '0',
+      haveSql: false,
+      username: this.$route.query.username || '',
     }
   },
-  setup() {
-
+  created() {
+    this.username = this.$route.query.username;
   },
   methods: {
     goToHome() {
-      this.$router.push('/');
+      this.$router.push({ path: '/', query: { username: this.username } });
     },
     goToLogin() {
       this.$router.push('/login');
@@ -105,10 +110,13 @@ export default {
       this.$router.push('/register');
     },
     goToDatabase() {
-      this.$router.push('/database');
+      this.$router.push({ path: '/database', query: { username: this.username } });
     },
     goToQuery() {
-      this.$router.push('/query');
+      this.$router.push({ path: '/query', query: { username: this.username } });
+    },
+    logout() {
+      this.username='';
     },
   }
 }

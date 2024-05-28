@@ -15,7 +15,8 @@
           <div class="flex-grow" />
           <el-menu-item v-if="!username" index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
           <el-menu-item v-if="!username" index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
-          <el-menu-item v-if="username" index="5" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>{{username}}</el-menu-item>
+          <el-menu-item v-if="username" index="5" ><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
+          <el-menu-item v-if="username" index="6" @click="logout" ref="ref6"><el-icon :size="20" color="#000000" ><SwitchButton /></el-icon>退出</el-menu-item>
         </el-menu>
       </el-header>
 
@@ -41,17 +42,21 @@
             <el-icon :size="20" color="#FFFFFF" style="margin-right: 10px"><Compass /></el-icon>
               查看引导
           </el-button>
-          <el-button class="big-rounded-button" style="background-color:#FFDF58;"  @click="goToRegister">
+          <el-button class="big-rounded-button" style="background-color:#FFDF58;"  @click="goAhead">
             立即体验
           <el-icon :size="20" color="#FFFFFF" style="padding-left: 10px;"><TopRight/></el-icon>
           </el-button>
         </div>
       </el-main>
-      <el-tour v-model="open" >
+      <el-tour v-model="open" v-if="!username" >
         <el-tour-step :target="ref1?.$el" title="1、创建一个账号" description="在这里，您可以创建一个新的账号，开始您的DataCopilot之旅。填写必要的信息并设置一个安全的密码。"/>
         <el-tour-step :target="ref2?.$el" title="2、登陆账号" description="使用您刚创建的账号信息登录DataCopilot平台。如果您已经拥有账号，请直接输入您的用户名和密码进行登录。"/>
         <el-tour-step :target="ref3?.$el" title="3、添加数据库" description="登录后，您需要添加可以访问的数据库。选择您的数据库类型，输入连接信息，并确保您有权限访问所选数据库。"/>
         <el-tour-step :target="ref4?.$el" title="4、进行查询" description="现在您可以使用DataCopilot的强大查询功能了。通过自然语言处理技术，您可以用简单的问题形式来查询数据库，而无需编写复杂的SQL语句。您还可以通过可视化工具来展示查询结果。"/>
+      </el-tour>
+      <el-tour v-model="open" v-if="username" >
+        <el-tour-step :target="ref3?.$el" title="1、添加数据库" description="登录后，您需要添加可以访问的数据库。选择您的数据库类型，输入连接信息，并确保您有权限访问所选数据库。"/>
+        <el-tour-step :target="ref4?.$el" title="2、进行查询" description="现在您可以使用DataCopilot的强大查询功能了。通过自然语言处理技术，您可以用简单的问题形式来查询数据库，而无需编写复杂的SQL语句。您还可以通过可视化工具来展示查询结果。"/>
       </el-tour>
     </el-container>
   </div>
@@ -85,7 +90,7 @@ export default {
   },
   methods: {
     goToHome() {
-      this.$router.push('/');
+      this.$router.push({ path: '/', query: { username: this.username } });
     },
     goToLogin() {
       this.$router.push('/login');
@@ -94,10 +99,17 @@ export default {
       this.$router.push('/register');
     },
     goToDatabase() {
-      this.$router.push('/database');
+        this.$router.push({ path: '/database', query: { username: this.username }});
+
     },
     goToQuery() {
-      this.$router.push('/query');
+        this.$router.push({ path: '/query', query: { username: this.username } });
+    },
+    logout() {
+      this.username='';
+    },
+    goAhead() {
+      this.$router.push({ path: '/database', query: { username: this.username } });
     },
   }
 }
