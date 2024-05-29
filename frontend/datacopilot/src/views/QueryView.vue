@@ -86,7 +86,7 @@ export default {
     return {
       activeIndex: '2', // 默认激活的菜单项
       searchQuery: '',
-      displaySql: true,
+      displaySql: false,
       displayChart: false,
       waitSql: false,
       waitChart: false,
