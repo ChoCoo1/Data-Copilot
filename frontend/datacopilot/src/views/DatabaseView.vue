@@ -55,10 +55,9 @@
           </div>
         </el-card>
 
-        <el-card v-if="connections">
+        <el-card v-if="connections.length>0">
           <div class="form-container">
             <div style="margin: 0 0 20px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>已导入的数据库</b></el-text></div>
-            <div style="margin: 0 0 20px 0;padding: 0"><el-divider></el-divider></div>
             <el-collapse v-model="activeNames" style="width: 550px" accordion>
               <el-collapse-item  v-for="connection in connections" :key="connection.id" :name="connection.id">
                 <template #title>

@@ -56,7 +56,7 @@
               <el-text style="margin: 10px auto;font-size: 1.2rem;color: black">{{this.sqlResult}}</el-text>
             </el-card>
 <!--       数据展示SQL查询结果 -->
-            <el-text style="margin:30px auto;padding: 20px;font-size: 1.4rem;color: black"><b>以下是SQL语句执行结果</b></el-text>
+            <el-text style="margin:30px auto;padding: 20px;font-size: 1.4rem;color: black"><b>SQL语句执行结果</b></el-text>
             <el-divider style="width: 550px"></el-divider>
             <el-table :data="tableData" height="100" style="width: 100%;max-height: 1000px;margin:20px auto;">
               <el-table-column prop="date" label="Date" width="100" />
@@ -82,6 +82,7 @@
 </template>
 
 <script>
+import axios from "axios";
 export default {
   data() {
     return {
@@ -91,7 +92,7 @@ export default {
       displayChart: false,
       waitSql: false,
       waitChart: false,
-      sqlResult: 'select * from table',
+      sqlResult: '',
       chartDescription: '这是图表描述',
       username: this.$route.query.username || '',
       tableData : [
@@ -105,7 +106,7 @@ export default {
   },
   methods: {
     goToHome() {
-      this.$router.push({ path: '/', query: { username: this.username } });
+      this.$router.push({path: '/', query: {username: this.username}});
     },
     goToLogin() {
       this.$router.push('/login');
@@ -114,23 +115,39 @@ export default {
       this.$router.push('/register');
     },
     goToDatabase() {
-      this.$router.push({ path: '/database', query: { username: this.username } });
+      this.$router.push({path: '/database', query: {username: this.username}});
     },
     goToQuery() {
-      this.$router.push({ path: '/query', query: { username: this.username } });
-    },
-    searchSql() {
-      this.displaySql = !this.displaySql;
+      this.$router.push({path: '/query', query: {username: this.username}});
     },
     showChart() {
       this.displayChart = !this.displayChart;
       this.$message.success('已经成功展示图表');
     },
     copySql() {
-        this.$message.success('复制成功');
+      this.$message.success('复制成功');
     },
     saveChart() {
       this.$message.success('保存成功');
+    },
+    searchSql() {
+      this.waitSql = true;
+      this.displaySql = true;
+      // 发送搜索内容到后端
+      let RequestData={
+          username: this.username,
+          sql_query: this.sqlResult,
+
+      }
+      axios.post('http://127.0.0.1:8000/api/generate_sql_query/', RequestData)
+        .then(response => {
+          // 将后端返回的 SQL 查询语句保存到数据中
+          this.sqlResult = response.data.sql_query;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      this.waitSql = false;
     },
   }
 }
