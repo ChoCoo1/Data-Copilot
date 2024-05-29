@@ -41,12 +41,12 @@
         </div>
 
         <!-- 显示SQL结果 -->
-          <el-card v-if="displaySql" style="height: auto" v-loading="waitSql">
+          <el-card v-if="displaySql" style="height: auto;width: 1000px" >
             <el-text style="margin: 0 auto;font-size: 1.8rem;color: black"><b>以下是生成结果</b></el-text>
-            <el-divider style="width: 550px"></el-divider>
+            <el-divider style="width: 900px"></el-divider>
             <!-- 回复框  -->
-            <el-card class="chatBox">
-              <div style="display: flex; justify-content: space-between; width: 500px; margin: 0 auto; padding: 0;">
+            <el-card class="chatBox" v-loading="waitSql" style="width: 900px;height: auto">
+              <div style="display: flex; justify-content: space-between; width: 800px; margin: 0 auto; padding: 0;">
                 <el-text style="text-align: left; width: 300px;color: black"><b>SQL语句</b></el-text>
                 <el-button type="text" style="color: black;" @click="copySql">
                   <el-icon :size="18"><CopyDocument /></el-icon> 复制结果
@@ -57,11 +57,9 @@
             </el-card>
 <!--       数据展示SQL查询结果 -->
             <el-text style="margin:30px auto;padding: 20px;font-size: 1.4rem;color: black"><b>SQL语句执行结果</b></el-text>
-            <el-divider style="width: 550px"></el-divider>
-            <el-table :data="tableData" height="100" style="width: 100%;max-height: 1000px;margin:20px auto;">
-              <el-table-column prop="date" label="Date" width="100" />
-              <el-table-column prop="name" label="Name" width="100" />
-              <el-table-column prop="address" label="Address" />
+            <el-divider style="width: 900px"></el-divider>
+            <el-table v-loading="waitExec" :data="tableData" height="100" :max-height="1000" style="width: 900px;margin:20px auto;">
+               <el-table-column v-for="column in columns" :key="column" :prop="column" :label="column" />
             </el-table>
             <el-button @click="showChart"> 可视化该图表</el-button>
           </el-card>
@@ -88,20 +86,16 @@ export default {
     return {
       activeIndex: '2', // 默认激活的菜单项
       searchQuery: '',
-      displaySql: false,
+      displaySql: true,
       displayChart: false,
       waitSql: false,
       waitChart: false,
+      waitExec: false,
       sqlResult: '',
       chartDescription: '这是图表描述',
       username: this.$route.query.username || '',
-      tableData : [
-        {
-          date: '2016-05-03',
-          name: 'Tom',
-          address: 'No. 189, Grove St, Los Angeles',
-        },
-      ]
+      tableData : [],
+      columns: []
     }
   },
   methods: {
@@ -131,23 +125,33 @@ export default {
       this.$message.success('保存成功');
     },
     searchSql() {
-      this.waitSql = true;
-      this.displaySql = true;
-      // 发送搜索内容到后端
-      let RequestData={
+      if (this.searchQuery === '') {
+        this.$message.error('请输入搜索内容');
+      }
+      else {
+        this.waitSql = true;
+        this.displaySql = true;
+        // 发送搜索内容到后端
+        let RequestData = {
           username: this.username,
           sql_query: this.sqlResult,
 
+        }
+        axios.post('http://127.0.0.1:8000/api/generate_sql_query/', RequestData)
+            .then(response => {
+              // 将后端返回的 SQL 查询语句保存到数据中
+              this.sqlResult = response.data.sql_query;
+              this.columns = response.data.columns;
+              this.tableData = response.data.results;
+              this.waitSql = false;
+              this.waitExec = false;
+              this.$message.success('搜索成功');
+              console.log(this.tableData);
+            })
+            .catch(error => {
+              this.waitSql = false;
+            });
       }
-      axios.post('http://127.0.0.1:8000/api/generate_sql_query/', RequestData)
-        .then(response => {
-          // 将后端返回的 SQL 查询语句保存到数据中
-          this.sqlResult = response.data.sql_query;
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-      this.waitSql = false;
     },
   }
 }

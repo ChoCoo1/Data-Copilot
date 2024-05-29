@@ -175,18 +175,50 @@ def generate_sql_query(request):
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system",
-             "content": "你是一个数据库专家，熟悉所有sql语句，请你根据我的问题，认真输入sql语句，不要使用中文解释，请你对数据库中的字段进行充分分析，选择合适的字段进行数据库查询"},
+            {"role": "system","content": "你是一个数据库专家，熟悉所有sql的结构和语法，请你根据我的问题，请你直接输出一个sql语句，不用markdown格式"
+                                         "不要使用中文解释，除了合理的分行外不要有任何别的格式，使用了哪个数据库请你先用use 语句输出一下"},
             {"role": "user", "content": prompt},
         ],
-        max_tokens=100,
-        temperature=0.5
+        max_tokens=1000,
+        temperature=0.5,
+        n=1,
     )
 
     # 从 OpenAI 响应中获取生成的 SQL 查询语句
-    # sql_query = completion.choices[0].message.content.strip()
-    sql_query = completion
+    sql_query = completion.choices[0].message.content.strip()
+    print(sql_query)
+    use_statement = sql_query.split(';')[0]
+    database_name = use_statement.split()[1]
+    if sql_query.lower().startswith('use '):
+        sql_query = sql_query.split(';', 1)[1].strip()
     print(sql_query)
 
+    # 执行查询
+    connections = DatabaseConnection.objects.filter(username=username,sql_name=database_name)
+    serializer = DatabaseConnectionSerializer(connections, many=True)
+    connection_info = serializer.data[0] # 假设只有一个数据库连接
+    sql_query = sql_query.replace('\n', ' ')
+
+    connection = pymysql.connect(
+        host=connection_info['sql_address'],
+        port=connection_info['sql_port'],
+        user=connection_info['sql_login_name'],
+        password=connection_info['sql_pwd'],
+        database=connection_info['sql_name'],
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+    try:
+        with connection.cursor() as cursor:
+            print(sql_query)
+            cursor.execute(sql_query)
+            results = cursor.fetchall()
+            print("results：",results)
+            columns = cursor.description
+            column_names = []
+            for i in range(len(columns)):
+                column_names.append(columns[i][0])
+    finally:
+        connection.close()
     # 返回 SQL 查询语句给前端
-    return Response({"sql_query": sql_query})
+    return Response({"sql_query": sql_query, "columns": column_names, "results": results})
