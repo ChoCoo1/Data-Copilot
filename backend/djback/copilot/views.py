@@ -195,6 +195,7 @@ def generate_sql_query(request):
     # 生成SQL查询
     sql_query = sql_query_chain.invoke({"question": search_query})
     results = db.run(sql_query)
+    #TODO： 完成结果展示
     print(results)
     # # 执行查询并获取结果
     # connection = pymysql.connect(
