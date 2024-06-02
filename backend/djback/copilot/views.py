@@ -1,20 +1,25 @@
 # app/views.py
 from rest_framework import generics
-from .models import CustomUser, DatabaseConnection
 from .serializers import *
+from langchain.chains import create_sql_query_chain
+from langchain_community.utilities import SQLDatabase
+from langchain_community.chat_models import ChatOpenAI
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate, login
 from rest_framework.decorators import api_view
 import pymysql
-from openai import OpenAI
+import os
 
 # 初始化 OpenAI 客户端
-client = OpenAI(
-    api_key="sk-4wJ2VKu3VL1fegJz5e3e930971B74e588343Cb774f9eB936",
-    base_url="https://api.gpts.vin/v1",
-)
+
+API_SECRET_KEY = "sk-4wJ2VKu3VL1fegJz5e3e930971B74e588343Cb774f9eB936"
+BASE_URL = "https://api.gpts.vin/v1"
+
+
+os.environ["OPENAI_API_KEY"] = API_SECRET_KEY
+os.environ["OPENAI_API_BASE"] = BASE_URL
 
 
 class RegisterView(generics.CreateAPIView):
@@ -103,6 +108,15 @@ def get_database_connections(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+def get_database_name(request):
+    username = request.query_params.get('username')
+    connections = DatabaseConnection.objects.filter(username=username)
+    # 序列化数据
+    serializer = DatabaseNameSerializer(connections, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 @api_view(['DELETE'])
 def delete_database_connection(request):
     sql_id = request.data.get('sql_id');
@@ -116,109 +130,91 @@ def delete_database_connection(request):
 
 
 # 大模型
-# 获取一个数据库下的所有表的字段
-def get_all_table_fields(username):
-    connections = DatabaseConnection.objects.filter(username=username)
-    serializer = DatabaseConnectionSerializer(connections, many=True)
-    all_database_field = {}
-    for connection_info in serializer.data:
-        # 连接用户导入的数据库
-        connection = pymysql.connect(
-            host=connection_info['sql_address'],
-            port=connection_info['sql_port'],
-            user=connection_info['sql_login_name'],
-            password=connection_info['sql_pwd'],
-            database=connection_info['sql_name'],
-            cursorclass=pymysql.cursors.DictCursor
-        )
-
-        all_table_fields = {}
-
-        try:
-            with connection.cursor() as cursor:
-                # 查询所有表名
-                cursor.execute("SHOW TABLES")
-                tables = cursor.fetchall()
-                for table in tables:
-                    table_name = table['Tables_in_' + connection_info['sql_name']]
-                    # 查询表的字段信息
-                    cursor.execute(f"DESCRIBE {table_name}")
-                    fields = cursor.fetchall()
-                    field_names = [field['Field'] for field in fields]
-                    all_table_fields[table_name] = field_names
-        finally:
-            connection.close()
-        all_database_field[connection_info['sql_name']] = all_table_fields
-    return all_database_field
+# # 获取一个数据库下的所有表的字段
+# def get_all_table_fields(username):
+#     connections = DatabaseConnection.objects.filter(username=username)
+#     serializer = DatabaseConnectionSerializer(connections, many=True)
+#     all_database_field = {}
+#     for connection_info in serializer.data:
+#         # 连接用户导入的数据库
+#         connection = pymysql.connect(
+#             host=connection_info['sql_address'],
+#             port=connection_info['sql_port'],
+#             user=connection_info['sql_login_name'],
+#             password=connection_info['sql_pwd'],
+#             database=connection_info['sql_name'],
+#             cursorclass=pymysql.cursors.DictCursor
+#         )
+#
+#         all_table_fields = {}
+#
+#         try:
+#             with connection.cursor() as cursor:
+#                 # 查询所有表名
+#                 cursor.execute("SHOW TABLES")
+#                 tables = cursor.fetchall()
+#                 for table in tables:
+#                     table_name = table['Tables_in_' + connection_info['sql_name']]
+#                     # 查询表的字段信息
+#                     cursor.execute(f"DESCRIBE {table_name}")
+#                     fields = cursor.fetchall()
+#                     field_names = [field['Field'] for field in fields]
+#                     all_table_fields[table_name] = field_names
+#         finally:
+#             connection.close()
+#         all_database_field[connection_info['sql_name']] = all_table_fields
+#     return all_database_field
 
 
 #  我想要查询datacopilot数据库中的copilot_customuser表中的所有信息
 @api_view(['POST'])
 def generate_sql_query(request):
     # 从前端获取搜索内容
-
     search_query = request.data.get('search_query', '')
     username = request.data.get('username', '')
-    all_table_fields=get_all_table_fields(username)
-    # 构建字段信息字符串
-    fields_info = "\n".join(
-        [f"Database: {db_name}, Table: {table_name}, Fields: {', '.join(fields)}"
-         for db_name, tables in all_table_fields.items()
-         for table_name, fields in tables.items()]
-    )
-    print(fields_info)
-    # 使用搜索内容生成 SQL 查询语句的 Prompt
-    prompt = (f"这里是数据库框架信息：\n{fields_info}\n\n"
-              f"请你根据以下检索内容生成SQL查询语句：{search_query}")
+    sql_name = request.data.get('sql_name', '')
 
-    # 向 OpenAI 发送请求，生成 SQL 查询语句
-    completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system","content": "你是一个数据库专家，熟悉所有sql的结构和语法，请你根据我的问题，请你直接输出一个sql语句，不用markdown格式"
-                                         "不要使用中文解释，除了合理的分行外不要有任何别的格式，使用了哪个数据库请你先用use 语句输出一下"},
-            {"role": "user", "content": prompt},
-        ],
-        max_tokens=1000,
-        temperature=0.5,
-        n=1,
-    )
+    # 初始化LangChain模型并指定API URL
+    llm = ChatOpenAI(model="gpt-3.5-turbo")
 
-    # 从 OpenAI 响应中获取生成的 SQL 查询语句
-    sql_query = completion.choices[0].message.content.strip()
-    print(sql_query)
-    use_statement = sql_query.split(';')[0]
-    database_name = use_statement.split()[1]
-    if sql_query.lower().startswith('use '):
-        sql_query = sql_query.split(';', 1)[1].strip()
-    print(sql_query)
-
-    # 执行查询
-    connections = DatabaseConnection.objects.filter(username=username,sql_name=database_name)
+    # 根据sql_name获取数据库连接信息
+    connections = DatabaseConnection.objects.filter(username=username, sql_name=sql_name)
+    if not connections.exists():
+        return Response({"error": "Database connection not found."}, status=404)
     serializer = DatabaseConnectionSerializer(connections, many=True)
-    connection_info = serializer.data[0] # 假设只有一个数据库连接
-    sql_query = sql_query.replace('\n', ' ')
+    connection_info = serializer.data[0]  # 假设只有一个数据库连接
 
-    connection = pymysql.connect(
-        host=connection_info['sql_address'],
-        port=connection_info['sql_port'],
-        user=connection_info['sql_login_name'],
-        password=connection_info['sql_pwd'],
-        database=connection_info['sql_name'],
-        cursorclass=pymysql.cursors.DictCursor
-    )
+    # 创建SQLDatabase对象
+    db_uri = f"mysql+pymysql://{connection_info['sql_login_name']}:{connection_info['sql_pwd']}@" \
+             f"{connection_info['sql_address']}:{connection_info['sql_port']}/{connection_info['sql_name']}"
+    db = SQLDatabase.from_uri(db_uri)
 
-    try:
-        with connection.cursor() as cursor:
-            print(sql_query)
-            cursor.execute(sql_query)
-            results = cursor.fetchall()
-            print("results：",results)
-            columns = cursor.description
-            column_names = []
-            for i in range(len(columns)):
-                column_names.append(columns[i][0])
-    finally:
-        connection.close()
-    # 返回 SQL 查询语句给前端
+    # 创建SQL查询链
+    sql_query_chain = create_sql_query_chain(llm, db)
+
+    # 生成SQL查询
+    sql_query = sql_query_chain.invoke({"question": search_query})
+    results = db.run(sql_query)
+    print(results)
+    # # 执行查询并获取结果
+    # connection = pymysql.connect(
+    #     host=connection_info['sql_address'],
+    #     port=connection_info['sql_port'],
+    #     user=connection_info['sql_login_name'],
+    #     password=connection_info['sql_pwd'],
+    #     database=connection_info['sql_name'],
+    #     cursorclass=pymysql.cursors.DictCursor
+    # )
+    #
+    # try:
+    #     with connection.cursor() as cursor:
+    #         cursor.execute(sql_query)
+    #         results = cursor.fetchall()
+    #         columns = cursor.description
+    #         column_names = [col[0] for col in columns]
+    # finally:
+    #     connection.close()
+
+    column_names = []
+    results =[]
     return Response({"sql_query": sql_query, "columns": column_names, "results": results})

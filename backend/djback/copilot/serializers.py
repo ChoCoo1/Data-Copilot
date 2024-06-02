@@ -49,3 +49,8 @@ class PartialDatabaseConnectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = DatabaseConnection
         fields = ['sql_name', 'sql_type', 'sql_address', 'sql_port','id']
+
+class DatabaseNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DatabaseConnection
+        fields = ['id', 'sql_name']

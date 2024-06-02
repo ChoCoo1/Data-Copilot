@@ -26,6 +26,14 @@
 
 <!--        搜索框-->
         <div class="search-container">
+          <el-select v-model="searchSqlName" placeholder="请选择数据库" style="width: 150px;margin:0;padding-right: 10px">
+            <el-option
+              v-for="item in searchTypeOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
           <el-input
               v-model="searchQuery"
               class="search-input"
@@ -33,6 +41,7 @@
             >
             <template #prepend>
               <el-icon :size="20" color="#000000"><Search /></el-icon>
+
             </template>
             <template #suffix>
                 <el-button class="roundBtn" @click="searchSql"><el-icon :size="20" color="#FFFFFF" ><Bottom/></el-icon></el-button>
@@ -95,8 +104,13 @@ export default {
       chartDescription: '这是图表描述',
       username: this.$route.query.username || '',
       tableData : [],
-      columns: []
+      columns: [],
+      searchTypeOptions: [],
+      searchSqlName:'',
     }
+  },
+  created() {
+    this.fetchDatabaseConnections();
   },
   methods: {
     goToHome() {
@@ -124,33 +138,56 @@ export default {
     saveChart() {
       this.$message.success('保存成功');
     },
+    fetchDatabaseConnections() {
+      axios.get('http://127.0.0.1:8000/api/get_database_name', {
+        params: {
+          username: this.username // 替换为实际用户名
+        }
+      })
+      .then(response => {
+        // 将返回的数据填充到 searchTypeOptions 中
+        this.searchTypeOptions = response.data.map(connection => ({
+          value: connection.sql_name,
+          label: connection.sql_name
+        }));
+      })
+      .catch(error => {
+        console.error('Error fetching database connections:', error);
+      });
+    },
     searchSql() {
       if (this.searchQuery === '') {
         this.$message.error('请输入搜索内容');
       }
+      else if (this.searchSqlName===''){
+        this.$message.error('请选择数据库');
+      }
       else {
         this.waitSql = true;
         this.displaySql = true;
+        this.sqlResult = '';
+        this.tableData = [];
+        this.columns = [];
         // 发送搜索内容到后端
         let RequestData = {
           username: this.username,
           sql_query: this.sqlResult,
-
+          sql_name: this.searchSqlName,
         }
         axios.post('http://127.0.0.1:8000/api/generate_sql_query/', RequestData)
-            .then(response => {
-              // 将后端返回的 SQL 查询语句保存到数据中
-              this.sqlResult = response.data.sql_query;
-              this.columns = response.data.columns;
-              this.tableData = response.data.results;
-              this.waitSql = false;
-              this.waitExec = false;
-              this.$message.success('搜索成功');
-              console.log(this.tableData);
-            })
-            .catch(error => {
-              this.waitSql = false;
-            });
+          .then(response => {
+            // 将后端返回的 SQL 查询语句保存到数据中
+            this.sqlResult = response.data.sql_query;
+            this.columns = response.data.columns;
+            this.tableData = response.data.results;
+            this.waitSql = false;
+            this.waitExec = false;
+            this.$message.success('搜索成功');
+            console.log(this.tableData);
+          })
+          .catch(error => {
+            this.waitSql = false;
+          });
       }
     },
   }
@@ -205,13 +242,14 @@ export default {
   }
 .search-container{
   display: flex;
+  flex-direction: row;
   justify-content: center;
   align-items: center;
   margin:50px auto 50px auto;
 }
 .search-input {
   width: 550px; /* 根据需要调整宽度 */
-  height: 50px;
+  height: 40px;
 }
 .roundBtn{
 width: 30px;

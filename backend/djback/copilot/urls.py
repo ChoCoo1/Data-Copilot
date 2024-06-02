@@ -9,4 +9,5 @@ urlpatterns = [
     path('get_database_connections/', get_database_connections, name='get_database_connections'),
     path('delete_database_connection/',delete_database_connection, name='delete_database_connection'),
     path('generate_sql_query/', generate_sql_query, name='generate_sql_query'),
+    path('get_database_name/', get_database_name, name='get_database_name'),
 ]
