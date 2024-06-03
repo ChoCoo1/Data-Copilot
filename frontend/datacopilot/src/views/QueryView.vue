@@ -70,7 +70,7 @@
             <el-table v-loading="waitSql" :data="tableData" height="400" :max-height="1000" style="width: 900px;margin:20px auto;">
                <el-table-column v-for="column in columns" :key="column" :prop="column" :label="column" />
             </el-table>
-            <div>
+            <div v-if="shouldChart">
               <el-select v-model="chartType" placeholder="请选择图表类型" style="width: 150px;margin:0;padding-right: 10px">
                 <el-option
                   v-for="item in chartTypeOptions"
@@ -88,7 +88,7 @@
               <el-text style="margin: 0;font-size: 1.8rem;color: black"><b>可视化结果</b></el-text>
               <el-divider style="width: 900px"></el-divider>
               <div ref="chartContainer" style="width: 900px; height: 400px;"></div>
-              <el-button @click="saveChart"> 保存图表</el-button>
+              <el-button @click="saveChart" :disabled="waitChart"> 保存图表</el-button>
           </el-card>
       </el-main>
     </el-container>
@@ -97,6 +97,7 @@
 
 <script>
 import axios from "axios";
+import * as echarts from 'echarts';
 import {ElMessage} from "element-plus";
 export default {
   data() {
@@ -105,10 +106,10 @@ export default {
       searchQuery: '',
       displaySql: false,
       displayChart: false,
+      shouldChart: false,
       waitSql: false,
       waitChart: false,
       sqlResult: '',
-      chartDescription: '这是图表描述',
       username: this.$route.query.username || '',
       tableData : [],
       columns: [],
@@ -145,47 +146,100 @@ export default {
       this.waitChart = true; // 加载图表时显示加载状态
 
       // 根据用户选择的图表类型执行相应的逻辑
-      if (this.chartType === 'bar') {
-        // 生成柱状图
-        this.generateBarChart();
-        this.waitChart = false;
-      } else if (this.chartType === 'line') {
-        // 生成折线图
-        this.generateLineChart();
-        this.waitChart = false;
-      } else {
-        // 其他类型的图表逻辑
-        this.$message.error('请选择正确的图表类型');
+      this.$nextTick(() => {
+        if (this.chartType === 'bar') {
+          // 生成柱状图
+          this.generateBarChart();
+        } else if (this.chartType === 'line') {
+          // 生成折线图
+          this.generateLineChart();
+        } else {
+          // 其他类型的图表逻辑
+          this.$message.error('请选择正确的图表类型');
+        }
         this.waitChart = false; // 停止加载状态
-      }
+      });
     },
     generateBarChart() {
-      // 将表格数据转换为柱状图所需的格式
-      const data = this.tableData.map(item => ({
-        name: item.name, // 假设数据中有一个 name 字段作为 x 轴数据
-        value: item.total_films // 假设数据中有一个 total_films 字段作为 y 轴数据
-      }));
+      // 获取第一列和最后一列的数据
+      const xData = this.tableData.map(item => item[this.columns[0]]);
+      const yData = this.tableData.map(item => item[this.columns[this.columns.length - 1]]);
 
-      // 使用 ECharts 或其他图表库生成柱状图
-      // 在这里你需要根据 data 的格式使用 ECharts 来生成柱状图
+      // 使用 ECharts 生成柱状图
+      const chart = echarts.init(this.$refs.chartContainer);
+      const option = {
+        title: {
+          text: '柱状图展示'
+        },
+        tooltip: {},
+        xAxis: {
+          name: this.columns[0],
+          data: xData,
+        },
+        yAxis: {
+          name: this.columns[this.columns.length - 1],
+          type: 'value',
+        },
+        series: [{
+          name: this.columns[this.columns.length - 1],
+          type: 'bar',
+          data: yData
+        }]
+      };
+      chart.setOption(option);
     },
     generateLineChart() {
-      // 将表格数据转换为折线图所需的格式
-      const data = this.tableData.map(item => ({
-        name: item.name, // 假设数据中有一个 name 字段作为 x 轴数据
-        value: item.total_films // 假设数据中有一个 total_films 字段作为 y 轴数据
-      }));
+      // 获取第一列和最后一列的数据
+      const xData = this.tableData.map(item => item[this.columns[0]]);
+      const yData = this.tableData.map(item => item[this.columns[this.columns.length - 1]]);
 
-      // 使用 ECharts 或其他图表库生成折线图
-      // 在这里你需要根据 data 的格式使用 ECharts 来生成折线图
+      // 使用 ECharts 生成折线图
+      const chart = echarts.init(this.$refs.chartContainer);
+      const option = {
+        title: {
+          text: '折线图展示'
+        },
+        tooltip: {},
+        xAxis: {
+          data: xData,
+          name: this.columns[0],
+        },
+        yAxis: {
+          name: this.columns[this.columns.length - 1],
+        },
+        series: [{
+          name: this.columns[this.columns.length - 1],
+          type: 'line',
+          data: yData
+        }]
+      };
+      chart.setOption(option);
     },
     copySql() {
-      this.$message.success('复制成功');
+      // 复制 SQL 查询结果到剪贴板
+      if(this.sqlResult===''){
+        this.$message.error('请先执行SQL查询');
+      }else{
+      navigator.clipboard.writeText(this.sqlResult)
+        .then(() => {
+          this.$message.success('复制成功');
+        })
+        .catch((err) => {
+          console.error('复制失败：', err);
+          this.$message.error('复制失败，请手动复制');
+        })};
     },
     saveChart() {
-      this.$message.success('保存成功');
-
-
+      // 获取图表实例
+      const chartInstance = echarts.getInstanceByDom(this.$refs.chartContainer);
+      // 导出为图片
+      chartInstance.convertToPixel('cartesian2d', [0, 0]);
+      const base64 = chartInstance.getDataURL({type: 'png', pixelRatio: 2});
+      // 创建一个a标签，模拟点击下载
+      const link = document.createElement('a');
+      link.href = base64;
+      link.download = 'chart.png';
+      link.click();
     },
     fetchDatabaseConnections() {
       axios.get('http://127.0.0.1:8000/api/get_database_name', {
@@ -229,6 +283,7 @@ export default {
             this.sqlResult = response.data.sql_query;
             this.columns = response.data.columns;
             this.tableData = response.data.results;
+            this.shouldChart = response.data.shouldChart;
             this.waitSql = false;
             this.waitExec = false;
             this.$message.success('搜索成功');

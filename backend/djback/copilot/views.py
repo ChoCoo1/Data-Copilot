@@ -140,10 +140,11 @@ def generate_sql_query(request):
     search_query = request.data.get('search_query', '')
     username = request.data.get('username', '')
     sql_name = request.data.get('sql_name', '')
+    search_query = search_query + '不要使用LIMIT命令，并且如果要使用聚合函数，请把使用聚合函数的变量放在select作为最后一个变量，把可以识别每个列的变量作为select的第一个变量。'
     search_query = Translator(from_lang="ZH",to_lang="EN-US").translate(search_query)
 
     # 初始化LangChain模型并指定API URL
-    llm = ChatOpenAI(model="gpt-3.5-turbo",temperature=0.7)
+    llm = ChatOpenAI(model="gpt-3.5-turbo")
 
     # 根据sql_name获取数据库连接信息
     connections = DatabaseConnection.objects.filter(username=username, sql_name=sql_name)
@@ -166,10 +167,16 @@ def generate_sql_query(request):
     if not sql_query.lower().startswith('select'):
         return Response({"error": "Invalid SQL query generated."}, status=400)
         # 将查询语句中的换行符替换为空格
+
     sql_query = sql_query.replace('\n', ' ')
     # 截断在第一个分号处
     sql_query = sql_query.split(';')[0] + ';'
 
+    aggregate_functions = ['COUNT', 'SUM', 'AVG']  # 可能的聚合函数列表
+
+    for func in aggregate_functions:
+        if func in sql_query.upper():  # 不区分大小写地检查是否包含聚合函数
+            can_chart = True
     # 使用pymysql执行查询并获取结果
     try:
         connection = pymysql.connect(
@@ -188,7 +195,6 @@ def generate_sql_query(request):
 
         # 获取列名
         column_names = [col[0] for col in column_names]
-
     except pymysql.MySQLError as e:
         return Response({"error": str(e)}, status=500)
-    return Response({"sql_query": sql_query, "columns": column_names, "results": results})
+    return Response({"sql_query": sql_query, "columns": column_names, "results": results, "shouldChart": can_chart})
