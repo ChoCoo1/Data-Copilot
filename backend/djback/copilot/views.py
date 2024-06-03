@@ -140,9 +140,10 @@ def generate_sql_query(request):
     search_query = request.data.get('search_query', '')
     username = request.data.get('username', '')
     sql_name = request.data.get('sql_name', '')
+    search_query = Translator(from_lang="ZH",to_lang="EN-US").translate(search_query)
 
     # 初始化LangChain模型并指定API URL
-    llm = ChatOpenAI(model="gpt-3.5-turbo")
+    llm = ChatOpenAI(model="gpt-3.5-turbo",temperature=0.7)
 
     # 根据sql_name获取数据库连接信息
     connections = DatabaseConnection.objects.filter(username=username, sql_name=sql_name)

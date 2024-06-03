@@ -87,10 +87,7 @@
             <el-card v-if="displayChart" style="max-height: 1000px" v-loading="waitChart">
               <el-text style="margin: 0;font-size: 1.8rem;color: black"><b>可视化结果</b></el-text>
               <el-divider style="width: 900px"></el-divider>
-              <img src="@/assets/img.png" alt="可视化图表" style="width:800px;margin:0;" >
-              <div style="margin: 10px auto;">
-                <el-text style="margin: 0;font-size: 1rem;color: black">{{chartDescription}}</el-text>
-              </div>
+              <div ref="chartContainer" style="width: 900px; height: 400px;"></div>
               <el-button @click="saveChart"> 保存图表</el-button>
           </el-card>
       </el-main>
@@ -121,7 +118,6 @@ export default {
       chartTypeOptions: [
         { value: 'bar', label: '柱状图' },
         { value: 'line', label: '折线图' },
-        { value: 'pie', label: '饼图' },
       ]
     }
   },
@@ -145,13 +141,43 @@ export default {
       this.$router.push({path: '/query', query: {username: this.username}});
     },
     showChart() {
-      this.displayChart = !this.displayChart;
-      this.waitChart = true;
-      if (this.chartType===''){
-        this.$message.error('请选择图表类型');
-      }else{
-        this.$message.success('可视化成功');
+      this.displayChart = true; // 显示图表
+      this.waitChart = true; // 加载图表时显示加载状态
+
+      // 根据用户选择的图表类型执行相应的逻辑
+      if (this.chartType === 'bar') {
+        // 生成柱状图
+        this.generateBarChart();
+        this.waitChart = false;
+      } else if (this.chartType === 'line') {
+        // 生成折线图
+        this.generateLineChart();
+        this.waitChart = false;
+      } else {
+        // 其他类型的图表逻辑
+        this.$message.error('请选择正确的图表类型');
+        this.waitChart = false; // 停止加载状态
       }
+    },
+    generateBarChart() {
+      // 将表格数据转换为柱状图所需的格式
+      const data = this.tableData.map(item => ({
+        name: item.name, // 假设数据中有一个 name 字段作为 x 轴数据
+        value: item.total_films // 假设数据中有一个 total_films 字段作为 y 轴数据
+      }));
+
+      // 使用 ECharts 或其他图表库生成柱状图
+      // 在这里你需要根据 data 的格式使用 ECharts 来生成柱状图
+    },
+    generateLineChart() {
+      // 将表格数据转换为折线图所需的格式
+      const data = this.tableData.map(item => ({
+        name: item.name, // 假设数据中有一个 name 字段作为 x 轴数据
+        value: item.total_films // 假设数据中有一个 total_films 字段作为 y 轴数据
+      }));
+
+      // 使用 ECharts 或其他图表库生成折线图
+      // 在这里你需要根据 data 的格式使用 ECharts 来生成折线图
     },
     copySql() {
       this.$message.success('复制成功');
