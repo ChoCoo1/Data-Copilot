@@ -1,6 +1,7 @@
 # app/views.py
 from rest_framework import generics
 from .serializers import *
+from .models import *
 from langchain.chains import create_sql_query_chain
 from langchain_community.utilities import SQLDatabase
 from langchain_openai import ChatOpenAI
@@ -18,7 +19,6 @@ import os
 
 API_SECRET_KEY = "sk-4wJ2VKu3VL1fegJz5e3e930971B74e588343Cb774f9eB936"
 BASE_URL = "https://api.gpts.vin/v1"
-
 
 os.environ["OPENAI_API_KEY"] = API_SECRET_KEY
 os.environ["OPENAI_API_BASE"] = BASE_URL
@@ -119,6 +119,7 @@ def get_database_name(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+# 删除数据库连接
 @api_view(['DELETE'])
 def delete_database_connection(request):
     sql_id = request.data.get('sql_id');
@@ -131,9 +132,56 @@ def delete_database_connection(request):
     return Response({'message': 'Database connection deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 
-# 大模型
+# 搜索历史
+@api_view(['POST'])
+def add_search_history(request):
+    username = request.data.get('username', '')
+    search_query = request.data.get('search_query', '')
+    search_sql_name = request.data.get('search_sql_name', '')
+    SearchHistory.objects.create(username=username, search_query=search_query, search_sql_name=search_sql_name)
+    return Response({'message': 'Search history saved successfully'}, status=status.HTTP_201_CREATED)
 
-#  我想要查询datacopilot数据库中的copilot_customuser表中的所有信息
+
+@api_view(['GET'])
+def get_search_history(request):
+    username = request.query_params.get('username')
+    history = SearchHistory.objects.filter(username=username)
+    serializer = SearchHistorySerializer(history, many=True)
+    print(serializer.data)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def update_password(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    try:
+        user = CustomUser.objects.get(username=username)
+        user.set_password(password)
+        user.save()
+        return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+    except CustomUser.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def update_phone(request):
+    username = request.data.get('username')
+    phone = request.data.get('phone')
+    try:
+        user = CustomUser.objects.get(username=username)
+        user.phone = phone
+        user.save()
+        return Response({'message': 'Phone number updated successfully'}, status=status.HTTP_200_OK)
+    except CustomUser.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 大模型
 @api_view(['POST'])
 def generate_sql_query(request):
     # 从前端获取搜索内容
@@ -141,7 +189,7 @@ def generate_sql_query(request):
     username = request.data.get('username', '')
     sql_name = request.data.get('sql_name', '')
     search_query = search_query + '不要使用LIMIT命令，并且如果要使用聚合函数，请把使用聚合函数的变量放在select作为最后一个变量，把可以识别每个列的变量作为select的第一个变量。'
-    search_query = Translator(from_lang="ZH",to_lang="EN-US").translate(search_query)
+    search_query = Translator(from_lang="ZH", to_lang="EN-US").translate(search_query)
 
     # 初始化LangChain模型并指定API URL
     llm = ChatOpenAI(model="gpt-3.5-turbo")
@@ -172,6 +220,7 @@ def generate_sql_query(request):
     # 截断在第一个分号处
     sql_query = sql_query.split(';')[0] + ';'
 
+    can_chart = False
     aggregate_functions = ['COUNT', 'SUM', 'AVG']  # 可能的聚合函数列表
 
     for func in aggregate_functions:

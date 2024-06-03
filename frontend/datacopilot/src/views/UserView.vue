@@ -15,44 +15,48 @@
           <div class="flex-grow" />
           <el-menu-item v-if="!username" index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
           <el-menu-item v-if="!username" index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
-          <el-menu-item v-if="username" index="5" @click="goToUser" ><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
+          <el-menu-item v-if="username" index="5" @click="goToUser"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
           <el-menu-item v-if="username" index="6" @click="logout" ref="ref6"><el-icon :size="20" color="#000000" ><SwitchButton /></el-icon>退出</el-menu-item>
         </el-menu>
       </el-header>
 
 <!--      页面主要部分  -->
       <el-main>
+        <el-backtop :right="100" :bottom="100" style="color: black"/>
         <el-card>
-          <div class="form-container">
-            <div style="margin: 0 0 20px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>导入数据库</b></el-text></div>
-            <el-divider style="width: 550px;margin: 0 0 20px 0;"></el-divider>
-          <el-form label-width="auto">
-              <el-form-item label="数据库类型">
-                <el-select v-model="SqlType"  placeholder="请选择数据库类型">
-                    <el-option label="Mysql" value="mysql" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="主机地址">
-                <el-input v-model="SqlAddress" placeholder="请输入主机号" />
-              </el-form-item>
-              <el-form-item label="端口号">
-                <el-input v-model="SqlPort"  placeholder="请输入端口" />
-              </el-form-item>
-              <el-form-item label="用户名">
-                <el-input v-model="SqlLoginName" placeholder="请输入数据库用户名" />
-              </el-form-item>
-              <el-form-item label="密码">
-                <el-input v-model="SqlPwd" placeholder="请输入数据密码" show-password type="password"/>
-              </el-form-item>
-              <el-form-item label="数据库名称">
-                <el-input v-model="SqlName" placeholder="请输入数据库名称" />
-              </el-form-item>
-          </el-form>
-          </div>
-          <div style="text-align: center">
-            <el-button type="primary" @click="testDatabase">验证连接</el-button>
-            <el-button type="primary" @click="saveDatabase" :disabled="!passConnect">导入</el-button>
-          </div>
+          <div style="margin: 0 0 0px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>修改密码</b></el-text></div>
+          <el-divider style="margin: 20px 0 50px 0" > </el-divider>
+            <el-form label-width="auto">
+                <el-form-item label="密码" style="margin: 40px 0 40px 0">
+                  <el-input
+                    v-model="inputPwd"
+                    type="password"
+                    placeholder="请输入密码"
+                    show-password
+                  />
+                </el-form-item>
+                <el-form-item label="确认密码" style="margin: 40px 0 40px 0">
+                  <el-input
+                    v-model="inputPwdAgain"
+                    type="password"
+                    placeholder="请再次输入密码"
+                    show-password
+                  />
+                </el-form-item>
+            </el-form>
+          <el-button type="primary" @click="UpdatePassword" style="width: 300px">修改密码</el-button>
+          <el-divider style="margin: 20px 0 20px 0" > </el-divider>
+          <div style="margin: 0 0 0px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>修改手机号</b></el-text></div>
+              <el-form label-width="auto">
+                <el-form-item label="手机号" style="margin: 40px 0 40px 0">
+                  <el-input
+                    v-model="inputPhone"
+                    placeholder="请输入手机号"
+                  />
+                </el-form-item>
+
+              </el-form>
+            <el-button type="primary" @click="UpdatePhone" style="width: 300px">修改手机号</el-button>
         </el-card>
 
         <el-card v-if="connections.length>0">
@@ -75,6 +79,17 @@
             </el-collapse>
           </div>
         </el-card>
+
+        <el-card>
+          <div class="form-container">
+            <div style="margin: 0 0 20px 0;padding: 0"><el-text style="font-size: 1.6rem;color: #000000"><b>搜索历史</b></el-text></div>
+            <el-table :data="tableData" height="400" :max-height="1000" style="width: 700px;margin:20px auto;">
+               <el-table-column v-for="column in columns" :key="column" :prop="column" :label="column" />
+            </el-table>
+          </div>
+        </el-card>
+
+
       </el-main>
     </el-container>
   </div>
@@ -87,22 +102,21 @@ import {ElMessage} from "element-plus";
 export default {
   data() {
     return {
-      activeIndex: '1', // 默认激活的菜单项
-      SqlType: '',
-      SqlName: '',
-      SqlPort: 3306,
-      SqlAddress: '127.0.0.1',
-      SqlLoginName: '',
-      SqlPwd: '',
-      passConnect: false,
+      activeIndex: '5', // 默认激活的菜单项
+      inputPwd: '',
+      inputPwdAgain:'',
+      inputPhone: '',
       username: this.$route.query.username || '',
       connections: [],
-      activeNames: '0'
+      activeNames: '0',
+      columns:['搜索时间','检索数据库','搜索内容'],
+      tableData: [],
     }
   },
   created() {
     this.username = this.$route.query.username;
     this.fetchDatabaseConnections();
+    this.fetchSearchHistory();
   },
   methods: {
     goToHome() {
@@ -126,51 +140,30 @@ export default {
     logout() {
       this.username='';
     },
-    testDatabase() {
-      const requestData = {
-        username: this.username,
-        sqlType: this.SqlType,
-        sqlName: this.SqlName,
-        sqlPort: this.SqlPort,
-        sqlAddress: this.SqlAddress,
-        sqlLoginName: this.SqlLoginName,
-        sqlPwd: this.SqlPwd
+    formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const formattedDate = date.toLocaleDateString('zh-CN');  // 获取本地日期字符串
+      const formattedTime = date.toLocaleTimeString('zh-CN');  // 获取本地时间字符串
+      return `${formattedDate} ${formattedTime}`;
+    },
+    fetchSearchHistory() {
+      const RequestData = {
+        params: {
+          username: this.username
+        }
       };
-      console.log(requestData);
-      axios.post('http://127.0.0.1:8000/api/test_database_connection/', requestData)
+      axios.get('http://127.0.0.1:8000/api/get_search_history/', RequestData)
         .then(response => {
-          ElMessage.success('连接成功');
-          // 测试连接成功，保存数据库信息
-          this.passConnect=true;
+          this.tableData = response.data.map(item => ({
+            '搜索时间': this.formatTimestamp(item.created_at),
+            '检索数据库': item.search_sql_name,
+            '搜索内容': item.search_query
+          }));
         })
         .catch(error => {
-          ElMessage.error('连接失败');
-          this.passConnect=false;
-          // 测试连接失败，提示用户连接失败
+          console.error("There was an error fetching the search history!", error);
         });
-    },
-    saveDatabase() {
-      const requestData = {
-        username: this.username,
-        sqlType: this.SqlType,
-        sqlName: this.SqlName,
-        sqlPort: this.SqlPort,
-        sqlAddress: this.SqlAddress,
-        sqlLoginName: this.SqlLoginName,
-        sqlPwd: this.SqlPwd
-      };
-
-      axios.post('http://127.0.0.1:8000/api/save_database_connection/', requestData)
-        .then(response => {
-          ElMessage.success('导入成功');
-          this.fetchDatabaseConnections();
-          // 处理保存成功的逻辑，例如提示用户保存成功
-        })
-        .catch(error => {
-          ElMessage.error('导入失败'); // 显示默认错误信息
-          // 处理保存失败的逻辑，例如提示用户保存失败
-        });
-    },
+  },
     fetchDatabaseConnections() {
       const RequestData = {
           params: {
@@ -196,6 +189,57 @@ export default {
           ElMessage.error("删除失败")
         });
     },
+    UpdatePassword() {
+      if (this.inputPwd === '' || this.inputPwdAgain === ''){
+        ElMessage.error("密码不能为空，请重新输入");
+      }
+      else if (this.inputPwd !== this.inputPwdAgain) {
+        ElMessage.error("两次输入的密码不一致，请重新输入");
+      }
+      else {
+        // 发送修改密码的请求到后端
+        const requestData = {
+          username: this.username,
+          password: this.inputPwd
+        };
+        axios.post('http://127.0.0.1:8000/api/update_password/', requestData)
+            .then(response => {
+              ElMessage.success("密码修改成功");
+              // 清空输入框
+              this.inputPwd = '';
+              this.inputPwdAgain = '';
+            })
+            .catch(error => {
+              ElMessage.error("密码修改失败，请稍后重试");
+              console.error("Error updating password:", error);
+            });
+      }
+      },
+    UpdatePhone() {
+      if (this.inputPhone === ''){
+        ElMessage.error("手机号不能为空，请重新输入");
+      }
+      else if (this.inputPhone.length!==11){
+        ElMessage.error("手机号格式不正确，请重新输入");
+      }
+      else{
+        // 发送修改手机号的请求到后端
+        const requestData = {
+          username: this.username,
+          phone: this.inputPhone
+        };
+        axios.post('http://127.0.0.1:8000/api/update_phone/', requestData)
+          .then(response => {
+            ElMessage.success("手机号修改成功");
+            // 清空输入框
+            this.inputPhone = '';
+          })
+          .catch(error => {
+            ElMessage.error("手机号修改失败，请稍后重试");
+            console.error("Error updating phone number:", error);
+          });
+      }
+    }
   }
 }
 </script>
@@ -229,7 +273,9 @@ export default {
   display: flex; /* 添加Flexbox布局 */
   flex-direction: column; /* 使子元素垂直排列 */
   align-items: center; /* 水平居中子元素 */
-  width: 700px;
+  justify-content: center;
+  text-align: center; /* 确保内部元素也居中，如果需要 */
+  width: 800px;
   margin:50px auto 50px auto;
   border-radius: 10px;
   padding: 10px;

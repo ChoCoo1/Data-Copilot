@@ -48,9 +48,16 @@ class DatabaseConnectionSerializer(serializers.ModelSerializer):
 class PartialDatabaseConnectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = DatabaseConnection
-        fields = ['sql_name', 'sql_type', 'sql_address', 'sql_port','id']
+        fields = ['sql_name', 'sql_type', 'sql_address', 'sql_port', 'id']
+
 
 class DatabaseNameSerializer(serializers.ModelSerializer):
     class Meta:
         model = DatabaseConnection
         fields = ['id', 'sql_name']
+
+
+class SearchHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SearchHistory
+        fields = ['created_at', 'search_sql_name', 'search_query']

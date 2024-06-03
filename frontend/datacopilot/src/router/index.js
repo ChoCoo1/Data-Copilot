@@ -26,6 +26,11 @@ const routes = [
     name: 'database',
     component: () => import('../views/DatabaseView.vue')
   },
+    {
+    path: '/user',
+    name: 'user',
+    component: () => import('../views/UserView.vue')
+  },
 ]
 
 const router = createRouter({

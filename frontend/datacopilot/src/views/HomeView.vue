@@ -15,7 +15,7 @@
           <div class="flex-grow" />
           <el-menu-item v-if="!username" index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
           <el-menu-item v-if="!username" index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
-          <el-menu-item v-if="username" index="5" ><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
+          <el-menu-item v-if="username" index="5" @click="goToUser"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
           <el-menu-item v-if="username" index="6" @click="logout" ref="ref6"><el-icon :size="20" color="#000000" ><SwitchButton /></el-icon>退出</el-menu-item>
         </el-menu>
       </el-header>
@@ -100,10 +100,12 @@ export default {
     },
     goToDatabase() {
         this.$router.push({ path: '/database', query: { username: this.username }});
-
     },
     goToQuery() {
         this.$router.push({ path: '/query', query: { username: this.username } });
+    },
+    goToUser() {
+      this.$router.push({ path: '/user', query: { username: this.username } });
     },
     logout() {
       this.username='';

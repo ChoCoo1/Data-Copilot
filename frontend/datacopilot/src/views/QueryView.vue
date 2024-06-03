@@ -15,7 +15,7 @@
           <div class="flex-grow" />
           <el-menu-item v-if="!username" index="3" @click="goToLogin" ref="ref2"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>登陆</el-menu-item>
           <el-menu-item v-if="!username" index="4" @click="goToRegister" ref="ref1"><el-icon :size="20" color="#000000" ><User /></el-icon>注册</el-menu-item>
-          <el-menu-item v-if="username" index="5" ><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
+          <el-menu-item v-if="username" index="5" @click="goToUser"><el-icon :size="20" color="#000000" ><UserFilled /></el-icon>{{username}}</el-menu-item>
           <el-menu-item v-if="username" index="6" @click="logout" ref="ref6"><el-icon :size="20" color="#000000" ><SwitchButton /></el-icon>退出</el-menu-item>
         </el-menu>
       </el-header>
@@ -38,6 +38,7 @@
               v-model="searchQuery"
               class="search-input"
               placeholder="请输入您想搜索的内容"
+              @input="fetchSearchHistory"
             >
             <template #prepend>
               <el-icon :size="20" color="#000000"><Search /></el-icon>
@@ -140,6 +141,9 @@ export default {
     },
     goToQuery() {
       this.$router.push({path: '/query', query: {username: this.username}});
+    },
+    goToUser() {
+      this.$router.push({path: '/user', query: {username: this.username}});
     },
     showChart() {
       this.displayChart = true; // 显示图表
@@ -287,13 +291,27 @@ export default {
             this.waitSql = false;
             this.waitExec = false;
             this.$message.success('搜索成功');
-            console.log(this.tableData);
+            this.addSearchHistory();
           })
           .catch(error => {
             this.waitSql = false;
           });
       }
-    },
+    },addSearchHistory() {
+        let requestData = {
+          username: this.username,
+          search_query: this.searchQuery,
+          search_sql_name: this.searchSqlName,
+        };
+        axios.post('http://127.0.0.1:8000/api/add_search_history/', requestData)
+          .then(response => {
+            // 成功保存搜索历史
+            console.log('成功导入搜索历史');
+          })
+          .catch(error => {
+            console.log('引入搜索历史失败');
+          });
+      },
   }
 }
 </script>

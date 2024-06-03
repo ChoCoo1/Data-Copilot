@@ -12,13 +12,13 @@ class CustomUser(AbstractUser):
 
 
 class DatabaseConnection(models.Model):
-    username = models.CharField(max_length=100,blank=True)
-    sql_type = models.CharField(max_length=100,blank=True)
-    sql_address = models.CharField(max_length=100,blank=True)
+    username = models.CharField(max_length=100, blank=True)
+    sql_type = models.CharField(max_length=100, blank=True)
+    sql_address = models.CharField(max_length=100, blank=True)
     sql_port = models.IntegerField(blank=True)
-    sql_login_name = models.CharField(max_length=100,blank=True)
-    sql_pwd = models.CharField(max_length=100,blank=True)
-    sql_name = models.CharField(max_length=100,blank=True)
+    sql_login_name = models.CharField(max_length=100, blank=True)
+    sql_pwd = models.CharField(max_length=100, blank=True)
+    sql_name = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -31,7 +31,9 @@ class DatabaseConnection(models.Model):
             return False, e.message_dict
         return True, None
 
+
 class SearchHistory(models.Model):
     username = models.CharField(max_length=100, blank=True)
     search_query = models.CharField(max_length=255, blank=True)
+    search_sql_name = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
