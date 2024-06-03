@@ -50,7 +50,7 @@
         </div>
 
         <!-- 显示SQL结果 -->
-          <el-card v-if="displaySql" style="height: auto;width: 1000px" >
+          <el-card v-if="displaySql" style="height: auto;" >
             <el-text style="margin: 0 auto;font-size: 1.8rem;color: black"><b>以下是生成结果</b></el-text>
             <el-divider style="width: 900px"></el-divider>
             <!-- 回复框  -->
@@ -67,17 +67,27 @@
 <!--       数据展示SQL查询结果 -->
             <el-text style="margin:30px auto;padding: 20px;font-size: 1.4rem;color: black"><b>SQL语句执行结果</b></el-text>
             <el-divider style="width: 900px"></el-divider>
-            <el-table v-loading="waitExec" :data="tableData" height="100" :max-height="1000" style="width: 900px;margin:20px auto;">
+            <el-table v-loading="waitSql" :data="tableData" height="400" :max-height="1000" style="width: 900px;margin:20px auto;">
                <el-table-column v-for="column in columns" :key="column" :prop="column" :label="column" />
             </el-table>
-            <el-button @click="showChart"> 可视化该图表</el-button>
+            <div>
+              <el-select v-model="chartType" placeholder="请选择图表类型" style="width: 150px;margin:0;padding-right: 10px">
+                <el-option
+                  v-for="item in chartTypeOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+              <el-button @click="showChart"> 可视化该图表</el-button>
+            </div>
           </el-card>
 
             <!-- 可视化图表  -->
             <el-card v-if="displayChart" style="max-height: 1000px" v-loading="waitChart">
               <el-text style="margin: 0;font-size: 1.8rem;color: black"><b>可视化结果</b></el-text>
-              <el-divider style="width: 550px"></el-divider>
-              <img src="@/assets/img.png" alt="可视化图表" style="width:500px;margin:0;" >
+              <el-divider style="width: 900px"></el-divider>
+              <img src="@/assets/img.png" alt="可视化图表" style="width:800px;margin:0;" >
               <div style="margin: 10px auto;">
                 <el-text style="margin: 0;font-size: 1rem;color: black">{{chartDescription}}</el-text>
               </div>
@@ -90,6 +100,7 @@
 
 <script>
 import axios from "axios";
+import {ElMessage} from "element-plus";
 export default {
   data() {
     return {
@@ -99,7 +110,6 @@ export default {
       displayChart: false,
       waitSql: false,
       waitChart: false,
-      waitExec: false,
       sqlResult: '',
       chartDescription: '这是图表描述',
       username: this.$route.query.username || '',
@@ -107,6 +117,12 @@ export default {
       columns: [],
       searchTypeOptions: [],
       searchSqlName:'',
+      chartType: '',
+      chartTypeOptions: [
+        { value: 'bar', label: '柱状图' },
+        { value: 'line', label: '折线图' },
+        { value: 'pie', label: '饼图' },
+      ]
     }
   },
   created() {
@@ -130,13 +146,20 @@ export default {
     },
     showChart() {
       this.displayChart = !this.displayChart;
-      this.$message.success('已经成功展示图表');
+      this.waitChart = true;
+      if (this.chartType===''){
+        this.$message.error('请选择图表类型');
+      }else{
+        this.$message.success('可视化成功');
+      }
     },
     copySql() {
       this.$message.success('复制成功');
     },
     saveChart() {
       this.$message.success('保存成功');
+
+
     },
     fetchDatabaseConnections() {
       axios.get('http://127.0.0.1:8000/api/get_database_name', {
@@ -171,7 +194,7 @@ export default {
         // 发送搜索内容到后端
         let RequestData = {
           username: this.username,
-          sql_query: this.sqlResult,
+          search_query: this.searchQuery,
           sql_name: this.searchSqlName,
         }
         axios.post('http://127.0.0.1:8000/api/generate_sql_query/', RequestData)
@@ -224,7 +247,7 @@ export default {
   flex-direction: column; /* 使子元素垂直排列 */
   align-items: center; /* 水平居中子元素 */
   text-align: center;
-  width: 700px;
+  width: 1000px;
   margin:50px auto 50px auto;
   border-radius: 10px;
   padding: 10px;

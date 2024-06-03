@@ -3,11 +3,13 @@ from rest_framework import generics
 from .serializers import *
 from langchain.chains import create_sql_query_chain
 from langchain_community.utilities import SQLDatabase
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate, login
+from translate import Translator
+
 from rest_framework.decorators import api_view
 import pymysql
 import os
@@ -130,41 +132,6 @@ def delete_database_connection(request):
 
 
 # 大模型
-# # 获取一个数据库下的所有表的字段
-# def get_all_table_fields(username):
-#     connections = DatabaseConnection.objects.filter(username=username)
-#     serializer = DatabaseConnectionSerializer(connections, many=True)
-#     all_database_field = {}
-#     for connection_info in serializer.data:
-#         # 连接用户导入的数据库
-#         connection = pymysql.connect(
-#             host=connection_info['sql_address'],
-#             port=connection_info['sql_port'],
-#             user=connection_info['sql_login_name'],
-#             password=connection_info['sql_pwd'],
-#             database=connection_info['sql_name'],
-#             cursorclass=pymysql.cursors.DictCursor
-#         )
-#
-#         all_table_fields = {}
-#
-#         try:
-#             with connection.cursor() as cursor:
-#                 # 查询所有表名
-#                 cursor.execute("SHOW TABLES")
-#                 tables = cursor.fetchall()
-#                 for table in tables:
-#                     table_name = table['Tables_in_' + connection_info['sql_name']]
-#                     # 查询表的字段信息
-#                     cursor.execute(f"DESCRIBE {table_name}")
-#                     fields = cursor.fetchall()
-#                     field_names = [field['Field'] for field in fields]
-#                     all_table_fields[table_name] = field_names
-#         finally:
-#             connection.close()
-#         all_database_field[connection_info['sql_name']] = all_table_fields
-#     return all_database_field
-
 
 #  我想要查询datacopilot数据库中的copilot_customuser表中的所有信息
 @api_view(['POST'])
@@ -194,28 +161,33 @@ def generate_sql_query(request):
 
     # 生成SQL查询
     sql_query = sql_query_chain.invoke({"question": search_query})
-    results = db.run(sql_query)
-    #TODO： 完成结果展示
-    print(results)
-    # # 执行查询并获取结果
-    # connection = pymysql.connect(
-    #     host=connection_info['sql_address'],
-    #     port=connection_info['sql_port'],
-    #     user=connection_info['sql_login_name'],
-    #     password=connection_info['sql_pwd'],
-    #     database=connection_info['sql_name'],
-    #     cursorclass=pymysql.cursors.DictCursor
-    # )
-    #
-    # try:
-    #     with connection.cursor() as cursor:
-    #         cursor.execute(sql_query)
-    #         results = cursor.fetchall()
-    #         columns = cursor.description
-    #         column_names = [col[0] for col in columns]
-    # finally:
-    #     connection.close()
 
-    column_names = []
-    results =[]
+    if not sql_query.lower().startswith('select'):
+        return Response({"error": "Invalid SQL query generated."}, status=400)
+        # 将查询语句中的换行符替换为空格
+    sql_query = sql_query.replace('\n', ' ')
+    # 截断在第一个分号处
+    sql_query = sql_query.split(';')[0] + ';'
+
+    # 使用pymysql执行查询并获取结果
+    try:
+        connection = pymysql.connect(
+            host=connection_info['sql_address'],
+            port=int(connection_info['sql_port']),
+            user=connection_info['sql_login_name'],
+            password=connection_info['sql_pwd'],
+            database=connection_info['sql_name'],
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(sql_query)
+            results = cursor.fetchall()
+            column_names = cursor.description
+        connection.close()
+
+        # 获取列名
+        column_names = [col[0] for col in column_names]
+
+    except pymysql.MySQLError as e:
+        return Response({"error": str(e)}, status=500)
     return Response({"sql_query": sql_query, "columns": column_names, "results": results})
